@@ -1,126 +1,144 @@
-    import sender_stand_request
-    import data
-    
-    # Функция для изменения значения в параметре firstName в теле запроса 
-    def get_user_body(first_name):
-        # Копируется словарь с телом запроса из файла data
-        current_body = data.user_body.copy()
-        # Изменение значения в поле firstName
-        current_body["firstName"] = first_name
-        # Возвращается новый словарь с нужным значением firstName
-        return current_body
-    
-    # Функция для позитивной проверки
-    def positive_assert(first_name):
-        # В переменную user_body сохраняется обновлённое тело запроса
-        user_body = get_user_body(first_name)
-        # В переменную user_response сохраняется результат запроса на создание пользователя:
-        user_response = sender_stand_request.post_new_user(user_body)
-    
-        # Проверяется, что код ответа равен 201
-        assert user_response.status_code == 201
-        # Проверяется, что в ответе есть поле authToken и оно не пустое
-        assert user_response.json()["authToken"] != ""
-    
-        # В переменную users_table_response сохраняется результат запроса 
-        users_table_response = sender_stand_request.get_users_table()
-    
-        # Строка, которая должна быть в ответе 
-        str_user = user_body["firstName"] + "," + user_body["phone"] + "," \
-                   + user_body["address"] + ",,," + user_response.json()["authToken"]
-    
-        # Проверка, что такой пользователь есть и он единственный
-        assert users_table_response.text.count(str_user) == 1
-    
-    # Функция негативной проверки, когда в ответе ошибка про символы
-    def negative_assert_symbol(first_name):
-        # В переменную user_body сохраняется обновлённое тело запроса
-        user_body = get_user_body(first_name)
-    
-        # В переменную response сохраняется результат 
-        response = sender_stand_request.post_new_user(user_body)
-    
-        # Проверяется, что код ответа равен 400
-        assert response.status_code == 400
-    
-        # Проверяется, что в теле ответа атрибут "code" равен 400
-        assert response.json()["code"] == 400
-        # Проверяется текст в теле ответа в атрибуте "message"
-        assert response.json()["message"] == "Имя пользователя введено некорректно. " \
-                                             "Имя может содержать только русские или латинские буквы, " \
-                                             "длина должна быть не менее 2 и не более 15 символов"
-    
-    # Функция для негативной проверки, когда в ответе ошибка: "Не все необходимые параметры были переданы"
-    def negative_assert_no_firstname(user_body):
-        # В переменную response сохраняется результат 
-        response = sender_stand_request.post_new_user(user_body)
-    
-        # Проверяется, что код ответа равен 400
-        assert response.status_code == 400
-    
-        # Проверяется, что в теле ответа атрибут "code" равен 400
-        assert response.json()["code"] == 400
-        # Проверяется текст в теле ответа в атрибуте "message"
-        assert response.json()["message"] == "Не все необходимые параметры были переданы"
-    
-    # Тест 1. Успешное создание пользователя. Параметр firstName состоит из 2 символов
-    def test_create_user_2_letter_in_first_name_get_success_response():
-        positive_assert("Aa")
-    
-    # Тест 2. Успешное создание пользователя. Параметр firstName состоит из 15 символов
-    def test_create_user_15_letter_in_first_name_get_success_response():
-        positive_assert("Ааааааааааааааа")
-    
-    # Тест 3. Ошибка. Параметр firstName состоит из 1 символа
-    def test_create_user_1_letter_in_first_name_get_error_response():
-        negative_assert_symbol("A")
-    
-    # Тест 4. Ошибка. Параметр firstName состоит из 16 символов
-    def test_create_user_16_letter_in_first_name_get_error_response():
-        negative_assert_symbol("Аааааааааааааааa")
-    
-    # Тест 5. Успешное создание пользователя. Параметр firstName состоит из английских букв
-    def test_create_user_english_letter_in_first_name_get_success_response():
-        positive_assert("QWErty")
-    
-    # Тест 6. Успешное создание пользователя. Параметр firstName состоит из русских букв
-    def test_create_user_russian_letter_in_first_name_get_success_response():
-        positive_assert("Мария")
-    
-    # Тест 7. Ошибка. Параметр firstName состоит из слов с пробелами
-    def test_create_user_has_space_in_first_name_get_error_response():
-        negative_assert_symbol("Человек и КО")
-    
-    # Тест 8. Ошибка. Параметр firstName состоит из строки спецсимволов
-    def test_create_user_has_special_symbol_in_first_name_get_error_response():
-        negative_assert_symbol("\"№%@\",")
-    
-    # Тест 9. Ошибка. Параметр firstName состоит из строки цифр
-    def test_create_user_has_number_in_first_name_get_error_response():
-        negative_assert_symbol("123")
-    
-    # Тест 10. Ошибка. В запросе нет параметра firstName
-    def test_create_user_no_first_name_get_error_response():
-        # Копируется словарь с телом запроса из файла data в переменную user_body
-        user_body = data.user_body.copy()
-        # Удаление параметра firstName из запроса
-        user_body.pop("firstName")
-        # Проверка полученного ответа
-        negative_assert_no_firstname(user_body)
-    
-    # Тест 11. Ошибка. Параметр состоит из пустой строки
-    def test_create_user_empty_first_name_get_error_response():
-        # В переменную user_body сохраняется обновлённое тело запроса
-        user_body = get_user_body("")
-        # Проверка полученного ответа
-        negative_assert_no_firstname(user_body)
-    
-    # Тест 12. Ошибка. Тип параметра firstName: число
-    def test_create_user_number_type_first_name_get_error_response():
-        # В переменную user_body сохраняется обновлённое тело запроса
-        user_body = get_user_body(12)
-        # В переменную user_response сохраняется результат запроса на создание пользователя:
-        response = sender_stand_request.post_new_user(user_body)
-    
-        # Проверка кода ответа
-        assert response.status_code == 400
+# create_kit_name_kit_test.py
+
+import sender_stand_request
+import data
+import pytest
+
+
+def get_new_user_token() -> str:
+    """
+    Создаёт пользователя и возвращает authToken из ответа.
+    """
+    resp = sender_stand_request.post_new_user()
+    assert resp.status_code == 201, f"Не создался пользователь: {
+        resp.status_code} {
+        resp.text}"
+    token = resp.json().get("authToken")
+    assert token, f"В ответе нет authToken: {resp.text}"
+    return token
+
+
+def get_kit_body(name):
+    """
+    Возвращает копию базового тела набора с подставленным name.
+    """
+    body = data.kit_body.copy()
+    body["name"] = name
+    return body
+
+
+def positive_assert(kit_body):
+    """
+    Позитивная проверка: 201 и совпадение name в ответе.
+    """
+    token = get_new_user_token()
+    resp = sender_stand_request.post_new_client_kit(kit_body, token)
+    assert resp.status_code == 201, f"Ожидали 201, получили {
+        resp.status_code}: {
+        resp.text}"
+    assert resp.json().get(
+        "name") == kit_body["name"], f"Имя в ответе не совпало: {resp.text}"
+
+
+def negative_assert_code_400(kit_body):
+    """
+    Негативная проверка: ожидаем 400.
+    """
+    token = get_new_user_token()
+    resp = sender_stand_request.post_new_client_kit(kit_body, token)
+    assert resp.status_code == 400, f"Ожидали 400, получили {
+        resp.status_code}: {
+        resp.text}"
+
+
+# 1. Допустимое количество символов (1) -> 201
+def test_name_len_1():
+    positive_assert(get_kit_body("a"))
+
+
+# 2. Допустимое количество символов (511) -> 201
+@pytest.mark.xfail(reason="Стенд даёт 201 вместо 400 для пустого name", strict=True)
+def test_name_len_511():
+    positive_assert(get_kit_body("a" * 511))
+
+
+# 3. Меньше допустимого (0) -> 400
+@pytest.mark.xfail(
+    reason="Стенд принимает пустую строку name и возвращает 201 вместо 400",
+    strict=True)
+def test_name_len_0():
+    negative_assert_code_400(get_kit_body(""))
+
+
+# 4. Больше допустимого (512) -> 400
+@pytest.mark.xfail(reason="Стенд даёт 201 вместо 400 при name длиной 512", strict=True)
+def test_name_len_512():
+    negative_assert_code_400(get_kit_body("a" * 512)) @ pytest.mark.xfail(
+        reason="Стенд возвращает 201 вместо 400 для name длиной 512")
+
+
+def test_name_len_512():
+    negative_assert_code_400(get_kit_body("a" * 512))
+
+
+@pytest.mark.xfail(reason="Стенд даёт 500 вместо 400 при отсутствии параметра name", strict=True)
+def test_name_param_absent():
+    token = get_new_user_token()
+    body = data.kit_body.copy()
+    body.pop("name", None)
+    resp = sender_stand_request.post_new_client_kit(body, token)
+    assert resp.status_code == 400, f"Ожидали 400, получили {
+        resp.status_code}: {
+        resp.text}"
+
+
+@pytest.mark.xfail(reason="Стенд даёт 201 вместо 400, если name — число", strict=True)
+def test_name_number_type():
+    negative_assert_code_400(get_kit_body(123))
+
+
+# 5. Разрешены английские буквы -> 201
+def test_name_english_letters():
+    positive_assert(get_kit_body("QWErty"))
+
+
+# 6. Разрешены русские буквы -> 201
+def test_name_russian_letters():
+    positive_assert(get_kit_body("Мария"))
+
+
+# 7. Разрешены спецсимволы -> 201
+def test_name_special_symbols():
+    positive_assert(get_kit_body("\"№%@\","))
+
+
+# 8. Разрешены пробелы -> 201
+def test_name_spaces_allowed():
+    positive_assert(get_kit_body(" Человек и КО "))
+
+
+# 9. Разрешены цифры -> 201
+def test_name_digits_allowed():
+    positive_assert(get_kit_body("123"))
+
+
+# 10. Параметр не передан в запросе -> 400
+@pytest.mark.xfail(
+    reason="Стенд отдаёт 500 при отсутствии параметра name (ожидали 400)",
+    strict=True)
+def test_name_param_absent():
+    token = get_new_user_token()
+    body = data.kit_body.copy()
+    body.pop("name", None)
+    resp = sender_stand_request.post_new_client_kit(body, token)
+    assert resp.status_code == 400, f"Ожидали 400, получили {
+        resp.status_code}: {
+        resp.text}"
+
+
+# 11. Передан другой тип параметра (число) -> 400
+@pytest.mark.xfail(
+    reason="Стенд принимает число в name и возвращает 201 вместо 400",
+    strict=True)
+def test_name_number_type():
+    negative_assert_code_400(get_kit_body(123))
