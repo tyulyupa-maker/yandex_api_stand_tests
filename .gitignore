@@ -1,13 +1,20 @@
-__pycache__/
-*.py[cod]
-*$py.class
+# .gitignore
 
+# 1. Скомпилированные файлы Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 2. Виртуальные окружения
 .venv/
 venv/
 env/
 
+# 3. Файлы кэша
 .pytest_cache/
-.vscode/
 
+# 4. Файлы IDE и ОС
+.vscode/
 .DS_Store
 Thumbs.db

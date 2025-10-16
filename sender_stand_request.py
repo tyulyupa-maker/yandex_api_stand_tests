@@ -1,48 +1,36 @@
 # sender_stand_request.py
-<<<<<<< HEAD
+
 import requests
 import configuration
 import data
 
+# Функция для создания нового пользователя
 
-def post_new_user():
+
+def post_new_user(user_body):
     """
-    Создаёт нового пользователя. Возвращает объект Response.
+    Отправляет запрос на создание нового пользователя.
+    Принимает user_body. Возвращает объект Response.
     """
     url = configuration.URL_SERVICE + configuration.CREATE_USER_PATH
-    return requests.post(url, json=data.user_body)
+
+    # Отправка запроса с телом пользователя
+    return requests.post(url, json=user_body)
 
 
-def post_new_client_kit(kit_body, auth_token: str):
-    """
-    Создаёт набор (kit) для пользователя. Требуется токен.
-    Возвращает объект Response.
-    """
-    url = configuration.URL_SERVICE + configuration.CREATE_KIT_PATH
-    headers = {"Authorization": f"Bearer {auth_token}"}
-    return requests.post(url, json=kit_body, headers=headers)
-=======
-
-import requests
-import urllib3
-from urllib3.exceptions import InsecureRequestWarning
-import settings as configuration
-import data
-
-urllib3.disable_warnings(InsecureRequestWarning)
-
-session = requests.Session()
-session.verify = False  #
-session.timeout = 15
-
-def post_new_user():
-    """Создаёт пользователя и возвращает ответ (Response)."""
-    url = configuration.URL_SERVICE + configuration.CREATE_USER_PATH
-    return session.post(url, json=data.new_user_body)
-
+# Функция для создания набора
 def post_new_client_kit(kit_body: dict, auth_token: str):
-    """Создаёт личный набор пользователя. Требуется токен Authorization."""
+    """
+    Отправляет запрос на создание личного набора для пользователя.
+    Требует заголовок Authorization. Возвращает объект Response.
+    """
     url = configuration.URL_SERVICE + configuration.CREATE_KIT_PATH
-    headers = data.make_auth_header(auth_token)
-    return session.post(url, json=kit_body, headers=headers)
->>>>>>> origin/main
+
+    # 1. Создаем копию заголовков из data.py (для Content-Type)
+    current_headers = data.auth_headers.copy()
+
+    # 2. Устанавливаем заголовок Authorization в формате Bearer
+    current_headers["Authorization"] = f"Bearer {auth_token}"
+
+    # Отправка запроса с телом набора и заголовками
+    return requests.post(url, json=kit_body, headers=current_headers)
